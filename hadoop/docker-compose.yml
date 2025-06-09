@@ -1,0 +1,227 @@
+version: '3.8'
+
+services:
+  # 1. Zookeeper (Required by HBase, also good for Kafka/other services)
+  zookeeper:
+    image: bitnami/zookeeper:3.8.0
+    container_name: zookeeper
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports:
+      - "2181:2181"
+    networks:
+      - hadoop_network
+    volumes:
+      - zookeeper_data:/bitnami/zookeeper
+
+  # 2. HDFS NameNode
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    restart: always
+    ports:
+      - "9870:9870" # HDFS NameNode UI
+      - "9000:9000" # HDFS RPC port
+    volumes:
+      - namenode_data:/hadoop/dfs/name
+    environment:
+      - CLUSTER_NAME=hadoop-dev-cluster
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    env_file:
+      - ./hadoop.env # For common Hadoop properties
+    networks:
+      - hadoop_network
+
+  # 3. HDFS DataNode
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    restart: always
+    depends_on:
+      - namenode
+    volumes:
+      - datanode_data:/hadoop/dfs/data
+    env_file:
+      - ./hadoop.env
+    environment:
+      - HDFS_NAMENODE_HOST=namenode
+    networks:
+      - hadoop_network
+
+  # 4. YARN ResourceManager
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: resourcemanager
+    restart: always
+    depends_on:
+      - namenode
+      - datanode
+    ports:
+      - "8088:8088" # YARN ResourceManager UI
+    env_file:
+      - ./hadoop.env
+    networks:
+      - hadoop_network
+
+  # 5. YARN NodeManager
+  nodemanager:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: nodemanager
+    restart: always
+    depends_on:
+      - namenode
+      - datanode
+      - resourcemanager
+    env_file:
+      - ./hadoop.env
+    environment:
+      - YARN_RESOURCEMANAGER_HOSTNAME=resourcemanager
+    networks:
+      - hadoop_network
+    # You can scale nodemanager: docker compose up -d --scale nodemanager=2
+
+  # 6. MySQL for Hive Metastore & HBase Master (optional for HBase)
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=mysecretpassword
+      - MYSQL_DATABASE=hive_metastore_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - hadoop_network
+
+  # 7. Hive Metastore
+  hive-metastore:
+    image: apache/hive:3.1.3
+    container_name: hive-metastore
+    # command: ["/opt/apache-hive-3.1.3-bin/bin/schematool", "-dbType", "mysql", "-initSchema"] # Initialize schema only once!
+    depends_on:
+      - mysql
+      - namenode # Ensure HDFS is ready for Hive warehouse
+    environment:
+      - HIVE_METASTORE_DB_HOSTNAME=mysql
+      - HIVE_METASTORE_DB_PORT=3306
+      - HIVE_METASTORE_DB_USERNAME=root
+      - HIVE_METASTORE_DB_PASSWORD=mysecretpassword
+      - SERVICE_NAME=metastore
+      - HIVE_METASTORE_WAREHOUSE_DIR=hdfs://namenode:9000/user/hive/warehouse
+    ports:
+      - "9083:9083" # Hive Metastore default port
+    networks:
+      - hadoop_network
+    # IMPORTANT: After the first successful schema initialization,
+    # comment out or remove the 'command' line from hive-metastore
+    # to prevent it from trying to re-initialize on subsequent restarts.
+
+  # 8. HiveServer2
+  hive-server:
+    image: apache/hive:3.1.3
+    container_name: hive-server
+    command: ["/opt/apache-hive-3.1.3-bin/bin/hiveserver2"]
+    depends_on:
+      - hive-metastore
+      - resourcemanager # For Tez/MR execution
+    environment:
+      - HIVE_METASTORE_URIS=thrift://hive-metastore:9083
+      - SERVICE_NAME=hiveserver2
+    ports:
+      - "10000:10000" # HiveServer2 JDBC port
+      - "10002:10002" # HiveServer2 Web UI
+    networks:
+      - hadoop_network
+
+  # # 9. HBase Master
+  # hbase-master:
+  #   image: apache/hbase:2.4.17
+  #   container_name: hbase-master
+  #   restart: always
+  #   depends_on:
+  #     - namenode
+  #     - zookeeper
+  #   ports:
+  #     - "16010:16010" # HBase Master UI
+  #     - "16000:16000" # HBase Master RPC
+  #   environment:
+  #     # Configure HBase to use our Zookeeper and HDFS
+  #     - HBASE_CONF_hbase_site_hbase_zookeeper_quorum=zookeeper:2181
+  #     - HBASE_CONF_hbase_site_hbase_cluster_distributed=true
+  #     - HBASE_CONF_hbase_site_hbase_rootdir=hdfs://namenode:9000/hbase
+  #     - HBASE_MASTER_INFO_PORT=16010 # Ensure UI port is set if not default
+  #   volumes:
+  #     - hbase_master_data:/opt/hbase/data # For HBase Wal, etc.
+  #   networks:
+  #     - hadoop_network
+
+  # # 10. HBase RegionServer
+  # hbase-regionserver:
+  #   image: apache/hbase:2.4.17
+  #   container_name: hbase-regionserver
+  #   restart: always
+  #   depends_on:
+  #     - hbase-master
+  #   environment:
+  #     # Configure HBase to use our Zookeeper and HDFS
+  #     - HBASE_CONF_hbase_site_hbase_zookeeper_quorum=zookeeper:2181
+  #     - HBASE_CONF_hbase_site_hbase_cluster_distributed=true
+  #     - HBASE_CONF_hbase_site_hbase_rootdir=hdfs://namenode:9000/hbase
+  #   volumes:
+  #     - hbase_regionserver_data:/opt/hbase/data
+  #   networks:
+  #     - hadoop_network
+  #   # You can scale hbase-regionserver: docker compose up -d --scale hbase-regionserver=2
+
+  # 11. Spark Master (Standalone mode)
+  spark-master:
+    image: apache/spark:3.5.0-hadoop3.2 # Use image built with Hadoop 3.2
+    container_name: spark-master
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master", "-h", "spark-master"]
+    ports:
+      - "8080:8080" # Spark Master UI
+      - "7077:7077" # Spark Master RPC
+    networks:
+      - hadoop_network
+
+  # 12. Spark Worker
+  spark-worker:
+    image: apache/spark:3.5.0-hadoop3.2
+    container_name: spark-worker
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+    depends_on:
+      - spark-master
+    networks:
+      - hadoop_network
+    # Expose Spark Worker UI if needed for debugging
+    # ports:
+    #   - "8081:8081" # Spark Worker UI (usually auto-assigned port, configure if exposing multiple workers)
+
+  # 13. Spark History Server (for viewing completed Spark jobs)
+  spark-history-server:
+    image: apache/spark:3.5.0-hadoop3.2
+    container_name: spark-history-server
+    command: ["/opt/spark/bin/spark-history-server"]
+    depends_on:
+      - namenode # For event logs on HDFS
+    ports:
+      - "18080:18080" # Spark History Server UI
+    environment:
+      # Configure to read event logs from HDFS
+      - SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=hdfs://namenode:9000/spark-events"
+    networks:
+      - hadoop_network
+
+volumes:
+  zookeeper_data:
+  namenode_data:
+  datanode_data:
+  mysql_data:
+  hbase_master_data:
+  hbase_regionserver_data:
+  # spark_history_logs: # Not strictly necessary if using HDFS for logs
+
+networks:
+  hadoop_network:
+    driver: bridge
