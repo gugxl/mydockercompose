@@ -1,0 +1,17 @@
+services:
+  clickhouse-server:
+    image: clickhouse/clickhouse-server:24.8.9.95
+    container_name: clickhouse-server  # 保留容器名称
+    ports:
+      - "8123:8123"  # HTTP API 端口
+      - "9000:9000"  # 原生 TCP 端口
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse  # 数据持久化
+      - clickhouse_config:/etc/clickhouse-server  # 配置持久化（可选）
+    restart: unless-stopped  # 自动重启策略
+    environment:
+      - TZ=Asia/Shanghai  # 时区配置（按需修改）
+
+volumes:
+  clickhouse_data:  # 声明数据卷
+  clickhouse_config: # 声明配置卷
