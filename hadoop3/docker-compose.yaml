@@ -1,0 +1,296 @@
+version: '3.8'
+
+networks:
+  hadoop-network:
+    driver: bridge
+
+volumes:
+  namenode-data:
+  datanode-data:
+  resourcemanager-data:
+  nodemanager-data:
+  hive-metastore-data:
+  hbase-master-data:
+  hbase-regionserver-data:
+  zookeeper-data:
+  zookeeper-logs:
+
+services:
+  # ZooKeeper服务
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.3
+    container_name: zookeeper
+    hostname: zookeeper
+    networks:
+      - hadoop-network
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+
+  # HDFS NameNode服务
+  namenode:
+    image: apache/hadoop:3.3.6
+    container_name: namenode
+    hostname: namenode
+    networks:
+      - hadoop-network
+    ports:
+      - "9870:9870"  # NameNode Web UI
+      - "9000:9000"  # HDFS RPC端口
+    volumes:
+      - namenode-data:/hadoop/dfs/name
+    env_file:
+      - ./config
+    environment:
+      ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
+    command: ["hdfs", "namenode"]
+    depends_on:
+      - zookeeper
+
+  # HDFS DataNode服务
+  datanode:
+    image: apache/hadoop:3.3.6
+    container_name: datanode
+    hostname: datanode
+    networks:
+      - hadoop-network
+    volumes:
+      - datanode-data:/hadoop/dfs/data
+    env_file:
+      - ./config
+    command: ["hdfs", "datanode"]
+    depends_on:
+      - namenode
+
+  # YARN ResourceManager服务
+  resourcemanager:
+    image: apache/hadoop:3.3.6
+    container_name: resourcemanager
+    hostname: resourcemanager
+    networks:
+      - hadoop-network
+    ports:
+      - "8088:8088"  # ResourceManager Web UI
+    env_file:
+      - ./config
+
+    command: ["yarn", "resourcemanager"]
+    depends_on:
+      - namenode
+      - datanode
+
+  # YARN NodeManager服务
+  nodemanager:
+    image: apache/hadoop:3.3.6
+    container_name: nodemanager
+    hostname: nodemanager
+    networks:
+      - hadoop-network
+    volumes:
+      - nodemanager-data:/hadoop/yarn/log
+    env_file:
+      - ./config
+    command: ["yarn", "nodemanager"]
+    depends_on:
+      - resourcemanager
+
+  # Hive Metastore数据库服务
+  hive-metastore-db:
+    image: mysql:8.0
+    container_name: hive-metastore-db
+    hostname: hive-metastore-db
+    networks:
+      - hadoop-network
+    ports:
+      - "3306:3306"
+    volumes:
+      - hive-metastore-data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=hive
+      - MYSQL_USER=hive
+      - MYSQL_PASSWORD=hive
+    command: [
+      '--character-set-server=utf8mb4',
+      '--collation-server=utf8mb4_unicode_ci',
+      '--default-storage-engine=InnoDB',
+      '--innodb-large-prefix=1',
+      '--innodb-file-format=Barracuda',
+      '--innodb-file-per-table=1'
+    ]
+
+  # Hive Metastore服务
+  hive-metastore:
+    image: apache/hive:4.0.0-alpha-2
+    container_name: hive-metastore
+    hostname: hive-metastore
+    networks:
+      - hadoop-network
+    ports:
+      - "9083:9083"
+    environment:
+      - HIVE_METASTOREURIS=thrift://hive-metastore:9083
+      - HIVE_DBSERVER2_HOST=hive-server2
+      - HIVE_DBSERVER2_PORT=10000
+      - HIVE_CONF_javax_jdo_option_ConnectionURL=jdbc:mysql://hive-metastore-db:3306/hive?createDatabaseIfNotExist=true&useSSL=false
+      - HIVE_CONF_javax_jdo_option_ConnectionDriverName=org.mariadb.jdbc.Driver
+      - HIVE_CONF_javax_jdo_option_ConnectionUserName=hive
+      - HIVE_CONF_javax_jdo_option_ConnectionPassword=hive
+      - HIVE_SITE_conf_hive_metastore_uris=thrift://hive-metastore:9083
+      - HIVE_SITE_hive_metastore_warehouse_dir=hdfs://namenode:9000/user/hive/warehouse
+    command: ["hive", "--service", "metastore"]
+    depends_on:
+      - namenode
+      - datanode
+      - hive-metastore-db
+
+  # HiveServer2服务
+  hive-server2:
+    image: apache/hive:4.0.0-alpha-2
+    container_name: hive-server2
+    hostname: hive-server2
+    networks:
+      - hadoop-network
+    ports:
+      - "10000:10000"  # HiveServer2 Thrift端口
+      - "10002:10002"  # HiveServer2 HTTP端口
+    environment:
+      - HIVE_METASTOREURIS=thrift://hive-metastore:9083
+      - HIVE_DBSERVER2_HOST=hive-server2
+      - HIVE_DBSERVER2_PORT=10000
+      - HIVE_CONF_javax_jdo_option_ConnectionURL=jdbc:mysql://hive-metastore-db:3306/hive?createDatabaseIfNotExist=true&useSSL=false
+      - HIVE_CONF_javax_jdo_option_ConnectionDriverName=org.mariadb.jdbc.Driver
+      - HIVE_CONF_javax_jdo_option_ConnectionUserName=hive
+      - HIVE_CONF_javax_jdo_option_ConnectionPassword=hive
+      - HIVE_SITE_conf_hive_metastore_uris=thrift://hive-metastore:9083
+      - HIVE_SITE_hive_metastore_warehouse_dir=hdfs://namenode:9000/user/hive/warehouse
+    command: ["hive", "--service", "hiveserver2"]
+    depends_on:
+      - hive-metastore
+
+#  # HBase Master服务
+#  hbase-master:
+#    image: bde2020/hbase:2.4.14-hadoop3
+#    container_name: hbase-master
+#    hostname: hbase-master
+#    networks:
+#      - hadoop-network
+#    ports:
+#      - "16000:16000"  # HBase Master端口
+#      - "16010:16010"  # HBase Master Web UI
+#    volumes:
+#      - hbase-master-data:/hbase-data
+#    environment:
+#      - HBASE_CLUSTER_DISTRIBUTED=true
+#      - HBASE_MANAGES_ZK=false
+#      - ZOOKEEPER_QUORUM=zookeeper
+#    command: ["hbase", "master", "start"]
+#    depends_on:
+#      - zookeeper
+#
+#  # HBase RegionServer服务
+#  hbase-regionserver:
+#    image: bde2020/hbase:2.4.14-hadoop3
+#    container_name: hbase-regionserver
+#    hostname: hbase-regionserver
+#    networks:
+#      - hadoop-network
+#    ports:
+#      - "16020:16020"  # HBase RegionServer端口
+#      - "16030:16030"  # HBase RegionServer Web UI
+#    volumes:
+#      - hbase-regionserver-data:/hbase-data
+#    environment:
+#      - HBASE_CLUSTER_DISTRIBUTED=true
+#      - HBASE_MANAGES_ZK=false
+#      - ZOOKEEPER_QUORUM=zookeeper
+#    command: ["hbase", "regionserver", "start"]
+#    depends_on:
+#      - hbase-master
+
+  # Spark Master服务
+  spark-master:
+    image: bitnami/spark:3.4.1
+    container_name: spark-master
+    hostname: spark-master
+    networks:
+      - hadoop-network
+    ports:
+      - "8080:8080"  # Spark Master Web UI
+      - "7077:7077"  # Spark Master端口
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=false
+      - SPARK_RPC_ENCRYPTION_ENABLED=false
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=false
+      - SPARK_SSL_ENABLED=false
+      - SPARK_HADOOP_VERSION=3
+    depends_on:
+      - namenode
+      - datanode
+      - resourcemanager
+      - nodemanager
+
+  # Spark Worker服务
+  spark-worker:
+    image: bitnami/spark:3.4.1
+    container_name: spark-worker
+    hostname: spark-worker
+    networks:
+      - hadoop-network
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=1
+      - SPARK_RPC_AUTHENTICATION_ENABLED=false
+      - SPARK_RPC_ENCRYPTION_ENABLED=false
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=false
+      - SPARK_SSL_ENABLED=false
+      - SPARK_HADOOP_VERSION=3
+    depends_on:
+      - spark-master
+
+  # Spark History Server服务
+  spark-history-server:
+    image: bitnami/spark:3.4.1
+    container_name: spark-history-server
+    hostname: spark-history-server
+    networks:
+      - hadoop-network
+    ports:
+      - "18080:18080"  # Spark History Server Web UI
+    environment:
+      - SPARK_MODE=history-server
+      - SPARK_HISTORY_FS_LOGDIR=hdfs://namenode:9000/spark-events
+      - SPARK_HADOOP_VERSION=3
+    command: ["/opt/bitnami/spark/bin/spark-class", "org.apache.spark.deploy.history.HistoryServer"]
+    depends_on:
+      - namenode
+
+  # 初始化HDFS目录的服务
+  hdfs-init:
+    image: apache/hadoop:3.3.6
+    container_name: hdfs-init
+    hostname: hdfs-init
+    networks:
+      - hadoop-network
+    command: |
+      sh -c "
+      while ! curl -s http://namenode:9870/ >/dev/null; do sleep 1; done;
+      hdfs dfs -mkdir -p /user/hive/warehouse;
+      hdfs dfs -mkdir -p /spark-events;
+      hdfs dfs -mkdir -p /tmp;
+      hdfs dfs -chmod g+w /user/hive/warehouse;
+      hdfs dfs -chmod g+w /spark-events;
+      hdfs dfs -chmod g+w /tmp;
+      echo 'HDFS directories initialized'
+      "
+    depends_on:
+      - namenode
+      - datanode
