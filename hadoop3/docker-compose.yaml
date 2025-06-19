@@ -15,6 +15,7 @@ volumes:
   zookeeper_logs:
   hive_metastore_db_data:
   hive_metastore_data:
+    
 
 services:
   # ZooKeeper服务
