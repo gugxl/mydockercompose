@@ -1,3 +1,7 @@
+volumes:
+  clickhouse_data:  # 声明数据卷
+  clickhouse_config: # 声明配置卷
+
 services:
   clickhouse-server:
     image: clickhouse/clickhouse-server:24.8.9.95
@@ -11,7 +15,3 @@ services:
     restart: unless-stopped  # 自动重启策略
     environment:
       - TZ=Asia/Shanghai  # 时区配置（按需修改）
-
-volumes:
-  clickhouse_data:  # 声明数据卷
-  clickhouse_config: # 声明配置卷
