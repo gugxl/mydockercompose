@@ -157,7 +157,11 @@ services:
       - HIVE_CONF_javax_jdo_option_ConnectionPassword=hive
       - HIVE_SITE_conf_hive_metastore_uris=thrift://hive-metastore:9083
       - HIVE_SITE_hive_metastore_warehouse_dir=hdfs://namenode:9000/user/hive/warehouse
-    command: ["hive", "--service", "metastore"]
+    command: >
+      bash -c "
+      /opt/hive/bin/schematool -dbType mysql -initSchema || true;
+      /opt/hive/bin/hive --service metastore
+      "
     depends_on:
       - namenode
       - datanode
