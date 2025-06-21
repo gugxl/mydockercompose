@@ -1,9 +1,0 @@
-services:
-  halo:
-    image: halohub/halo:2.20
-    container_name: halo
-    ports:
-      - "8090:8090"
-    volumes:
-      - ~/.halo2:/root/.halo2
-    restart: unless-stopped
