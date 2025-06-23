@@ -106,6 +106,8 @@ services:
     ports:
       - "10000:10000"
       - "10002:10002"
+    volumes:
+      - ./hive/hive-site.xml:/opt/hive/conf/hive-site.xml
     env_file:
       - ./hadoop.env
 
