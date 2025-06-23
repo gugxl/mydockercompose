@@ -61,6 +61,19 @@ services:
 
   ### hive start
 
+  hive-metastore-db:
+    image: postgres:13
+    container_name: hive-metastore-db
+    restart: always
+    environment:
+      POSTGRES_DB: metastore
+      POSTGRES_USER: hive
+      POSTGRES_PASSWORD: hive
+    ports:
+      - "5432:5432"
+    volumes:
+      - hive_metastore_db:/var/lib/postgresql/data
+
   hive-metastore:
     image: bde2020/hive:2.3.2-postgresql-metastore
     container_name: hive-metastore
@@ -70,28 +83,11 @@ services:
       - datanode
       - hive-metastore-db
     environment:
-      HIVE_METASTORE_DB_TYPE: postgres
-      HIVE_METASTORE_HOST: hive-metastore
-      HIVE_DB_NAME: metastore
-      HIVE_DB_USER: hive
-      HIVE_DB_PASSWORD: hive
-      HIVE_DB_HOST: hive-metastore-db
       SERVICE_PRECONDITION: "namenode:9870 datanode:9864 hive-metastore-db:5432"
     ports:
       - "9083:9083"
-    env_file:
-      - ./hadoop.env
-
-  hive-metastore-db:
-    image: postgres:13
-    container_name: hive-metastore-db
-    restart: always
-    environment:
-      POSTGRES_DB: metastore
-      POSTGRES_USER: hive
-      POSTGRES_PASSWORD: hive
     volumes:
-      - hive_metastore_db:/var/lib/postgresql/data
+      - ./hive/hive-site.xml:/opt/hive/conf/hive-site.xml
 
   hive-server:
     image: bde2020/hive:2.3.2-postgresql-metastore
@@ -99,19 +95,20 @@ services:
     restart: always
     depends_on:
       - hive-metastore
-    ports:
-      - "10000:10000"  # JDBC
-      - "10002:10002"  # Beeline Web UI
     environment:
       HIVE_METASTORE_DB_TYPE: postgres
-      HIVE_METASTORE_HOST: hive-metastore
       HIVE_DB_NAME: metastore
       HIVE_DB_USER: hive
       HIVE_DB_PASSWORD: hive
       HIVE_DB_HOST: hive-metastore-db
+      HIVE_DB_PORT: 5432
       SERVICE_PRECONDITION: "namenode:9870 datanode:9864 hive-metastore:9083"
+    ports:
+      - "10000:10000"
+      - "10002:10002"
     env_file:
       - ./hadoop.env
+
 
 
   ### hive end

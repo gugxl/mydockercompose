@@ -11,7 +11,9 @@ docker compose stop hive-metastore
 
 3. 编辑
 编辑 docker-compose.yml： 将 hive-metastore 服务中的 command 行注释掉或删除
-    # command: ["/opt/apache-hive-3.1.2-bin/bin/schematool", "-dbType", "mysql", "-initSchema"] # Initialize schema only once!
+
+docker exec -it hive-metastore bash
+schematool -dbType postgres -initSchema
 
 
 4. Spark History Server创建HDFS目录
