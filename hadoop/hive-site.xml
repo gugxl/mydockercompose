@@ -3,29 +3,37 @@
         <name>javax.jdo.option.ConnectionURL</name>
         <value>jdbc:postgresql://hive-metastore-db:5432/metastore</value>
     </property>
-
     <property>
         <name>javax.jdo.option.ConnectionDriverName</name>
         <value>org.postgresql.Driver</value>
     </property>
-
     <property>
         <name>javax.jdo.option.ConnectionUserName</name>
         <value>hive</value>
     </property>
-
     <property>
         <name>javax.jdo.option.ConnectionPassword</name>
         <value>hive</value>
     </property>
-
     <property>
         <name>hive.metastore.schema.verification</name>
         <value>false</value>
     </property>
     <property>
-        <name>fs.defaultFS</name>
-        <value>hdfs://namenode:9000</value>
+        <name>datanucleus.autoCreateSchema</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>datanucleus.fixedDatastore</name>
+        <value>false</value>
+    </property>
+    <property>
+        <name>datanucleus.autoCreateTables</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>hive.server2.authentication</name>
+        <value>NONE</value>
     </property>
 
 </configuration>
