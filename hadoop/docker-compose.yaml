@@ -57,9 +57,77 @@ services:
     env_file:
       - ./hadoop.env
 
-### hadoop 单节点 start
+  ### hadoop 单节点 end
+
+  ### hive start
+
+  hive-metastore:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-metastore
+    restart: always
+    depends_on:
+      - namenode
+      - datanode
+      - hive-metastore-db
+    environment:
+      HIVE_METASTORE_DB_TYPE: postgres
+      HIVE_METASTORE_HOST: hive-metastore
+      HIVE_DB_NAME: metastore
+      HIVE_DB_USER: hive
+      HIVE_DB_PASSWORD: hive
+      HIVE_DB_HOST: hive-metastore-db
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864 hive-metastore-db:5432"
+    ports:
+      - "9083:9083"
+    env_file:
+      - ./hadoop.env
+
+  hive-metastore-db:
+    image: postgres:13
+    container_name: hive-metastore-db
+    restart: always
+    environment:
+      POSTGRES_DB: metastore
+      POSTGRES_USER: hive
+      POSTGRES_PASSWORD: hive
+    volumes:
+      - hive_metastore_db:/var/lib/postgresql/data
+
+  hive-server:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-server
+    restart: always
+    depends_on:
+      - hive-metastore
+    ports:
+      - "10000:10000"  # JDBC
+      - "10002:10002"  # Beeline Web UI
+    environment:
+      HIVE_METASTORE_DB_TYPE: postgres
+      HIVE_METASTORE_HOST: hive-metastore
+      HIVE_DB_NAME: metastore
+      HIVE_DB_USER: hive
+      HIVE_DB_PASSWORD: hive
+      HIVE_DB_HOST: hive-metastore-db
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864 hive-metastore:9083"
+    env_file:
+      - ./hadoop.env
+
+
+  ### hive end
+
+  ### spark start
+
+  ### spark end
+
+  ### hbase start
+
+  ### hbase end
 
 volumes:
   hadoop_namenode:
   hadoop_datanode:
   hadoop_historyserver:
+  hive_metastore_db:
+
+
