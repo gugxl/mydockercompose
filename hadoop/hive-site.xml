@@ -39,5 +39,9 @@
         <name>hive.metastore.uris</name>
         <value>thrift://hive-metastore:9083</value>
     </property>
+    <property>
+        <name>hadoop.proxyuser.hive.groups</name>
+        <value>*</value>
+    </property>
 
 </configuration>

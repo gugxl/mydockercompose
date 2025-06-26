@@ -91,17 +91,16 @@ services:
         namenode:9870 datanode:9864 hive-metastore-db:5432
     volumes:
       - ./hive-site.xml:/opt/hive/conf/hive-site.xml
-    command:
-      - /opt/hive/bin/schematool
-      - "-initSchema"
-      - "-dbType"
-      - "postgres"
+#    command:
+#      - /opt/hive/bin/schematool
+#      - "-initSchema"
+#      - "-dbType"
+#      - "postgres"
     # Override the entrypoint to then start metastore after schema init:
     entrypoint:
       - /bin/bash
       - "-c"
       - |
-        /opt/hive/bin/schematool -initSchema -dbType postgres && \
         exec /opt/hive/bin/hive --service metastore
     ports:
       - "9083:9083"
