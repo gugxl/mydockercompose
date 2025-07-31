@@ -2,7 +2,6 @@ services:
   mysql8.0:      # 服务名称（与原容器名称一致）
     image: mysql:8.0.22  # 指定镜像版本
     container_name: mysql8.0  # 显式设置容器名称
-    restart: always  # 重启策略
     ports:
       - "3306:3306"  # 端口映射（主机:容器）
     volumes:
