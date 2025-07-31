@@ -1,0 +1,139 @@
+# 前置条件
+安装好docker和 docker compose
+集群部署
+
+# 1. compose环境文件夹
+
+```
+mkdir elk-cluster && cd elk-cluster
+```
+
+# 2. 创建compose文件
+
+```
+vim docker-compose.yaml
+```
+
+内容如下
+```
+version: '3.8'
+
+services:
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.4
+    container_name: es01
+    environment:
+      - node.name=es01
+      - cluster.name=es-cluster-dev
+      - discovery.seed_hosts=es01,es02,es03
+      - cluster.initial_master_nodes=es01,es02,es03
+      - node.roles=master,data
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - data01:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+    networks:
+      - elastic
+
+  es02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.4
+    container_name: es02
+    environment:
+      - node.name=es02
+      - cluster.name=es-cluster-dev
+      - discovery.seed_hosts=es01,es02,es03
+      - cluster.initial_master_nodes=es01,es02,es03
+      - node.roles=master,data
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - data02:/usr/share/elasticsearch/data
+    networks:
+      - elastic
+    depends_on:
+      - es01
+
+  es03:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.4
+    container_name: es03
+    environment:
+      - node.name=es03
+      - cluster.name=es-cluster-dev
+      - discovery.seed_hosts=es01,es02,es03
+      - cluster.initial_master_nodes=es01,es02,es03
+      - node.roles=master,data,ingest
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - data03:/usr/share/elasticsearch/data
+    networks:
+      - elastic
+    depends_on:
+      - es01
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.0.4
+    container_name: kibana
+    environment:
+      - SERVER_NAME=kibana
+      - ELASTICSEARCH_HOSTS=http://es01:9200
+      - xpack.security.enabled=false
+    ports:
+      - 5601:5601
+    networks:
+      - elastic
+    depends_on:
+      - es01
+
+volumes:
+  data01:
+    driver: local
+  data02:
+    driver: local
+  data03:
+    driver: local
+
+networks:
+  elastic:
+    driver: bridge
+
+```
+
+# 3. 启动
+
+```
+docker compose up -d
+```
+
+# 4. 访问验证
+
+elasticsearch
+```
+http://localhost:9200/
+```
+
+kanaba
+```
+http://localhost:5601/
+```
