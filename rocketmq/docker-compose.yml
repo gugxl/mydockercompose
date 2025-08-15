@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # NameServer
+  rmqnamesrv:
+    image: apache/rocketmq:latest
+    container_name: rmqnamesrv
+    ports:
+      - "9876:9876"   # NameServer 默认端口
+    command: sh mqnamesrv
+    restart: unless-stopped
+
+  # Broker
+  rmqbroker:
+    image: apache/rocketmq:latest
+    container_name: rmqbroker
+    ports:
+      - "10911:10911"   # Broker TCP端口
+      - "10909:10909"   # Broker HTTP端口
+    environment:
+      - NAMESRV_ADDR=rmqnamesrv:9876
+      - BROKER_CLUSTER_NAME=DefaultCluster
+      - BROKER_NAME=broker-a
+      - BROKER_ID=0
+      - BROKER_ROLE=ASYNC_MASTER
+      - JAVA_OPTS=-Duser.home=/opt
+    command: sh mqbroker -n rmqnamesrv:9876
+    depends_on:
+      - rmqnamesrv
+    restart: unless-stopped
+
+  # RocketMQ Console（可选）
+  rocketmq-console:
+    image: styletang/rocketmq-console-ng
+    container_name: rocketmq-console
+    ports:
+      - "8090:8080"
+    environment:
+      - JAVA_OPTS=-Drocketmq.namesrv.addr=rmqnamesrv:9876
+    depends_on:
+      - rmqnamesrv
+      - rmqbroker
+    restart: unless-stopped

@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  xxl-job-admin:
+    image: xuxueli/xxl-job-admin:2.5.0
+    container_name: xxl-job-admin
+    environment:
+      - XXL_JOB_ADMIN_PORT=8080
+      - XXL_JOB_DB_URL=jdbc:mysql://mysql8.0:3306/xxl_job?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      - XXL_JOB_DB_USERNAME=root
+      - XXL_JOB_DB_PASSWORD=root123
+      - XXL_JOB_ACCESS_TOKEN=xxl-secret-token
+    ports:
+      - "8080:8080"
+    networks:
+      - mysql8_default   # 加入 MySQL 的网络
+    restart: unless-stopped
+
+networks:
+  mysql8_default:
+    external: true       # 表示使用已存在的网络
