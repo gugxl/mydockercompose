@@ -21,3 +21,8 @@ services:
               count: all
               capabilities: [gpu]
     ipc: host
+    volumes:
+      # 覆盖系统自带的 dataset_info.json
+      - ./data/dataset_info.json:/app/data/dataset_info.json
+      # 本地 datasets 目录，里面放 magic_conch.json 等训练数据
+      - ./data/datasets:/app/data/datasets
