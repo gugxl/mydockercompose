@@ -6,7 +6,7 @@
     "file_name": "alpaca_en_demo.json"
   },
   "magic_conch": {
-    "file_name": "magic_conch.json"
+    "file_name": "datasets/magic_conch.json"
   },
   "alpaca_zh_demo": {
     "file_name": "alpaca_zh_demo.json"
