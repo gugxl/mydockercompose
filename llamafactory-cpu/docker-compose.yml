@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  llamafactory:
+    image: hiyouga/llamafactory:latest
+    container_name: llamafactory
+    restart: unless-stopped
+    ports:
+      - "7860:7860"
+    environment:
+      - HF_ENDPOINT=https://hf-mirror.com
+      # 禁用 GPU (等效于 CUDA_VISIBLE_DEVICES="")
+      - CUDA_VISIBLE_DEVICES=
+    command: >
+      python -m src.llamafactory.cli webui
+      --host 0.0.0.0
+      --port 7860
+      --device cpu
+    ipc: host
+    volumes:
+      # 覆盖系统自带的 dataset_info.json
+      - ./data/dataset_info.json:/app/data/dataset_info.json
+      # 本地 datasets 目录，里面放 magic_conch.json 等训练数据
+      - ./data/datasets:/app/data/datasets
