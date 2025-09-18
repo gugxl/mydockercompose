@@ -15,18 +15,18 @@ services:
       - kafka_zk_conf:/opt/zookeeper-3.4.13/conf
       - kafka_zk_data:/opt/zookeeper-3.4.13/data
 
-  kafka:
+  kafka2:
     image: wurstmeister/kafka
-    container_name: kafka
+    container_name: kafka2
     depends_on:
       - zookeeper
     ports:
       - 9092:9092
     volumes:
-      - kafka_data:/kafka
+      - kafka_data:/kafka2
     environment:
       KAFKA_BROKER_ID: 0
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9092
       KAFKA_ADVERTISED_PORT: 9092
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_PORT: 9092
@@ -44,8 +44,8 @@ services:
       - DYNAMIC_CONFIG_ENABLED=true
       - SERVER_SERVLET_CONTEXT_PATH=/ui-kafka
       - KAFKA_CLUSTERS_0_NAME=local
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka2:9092
       - KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL=PLAINTEXT
     depends_on:
       - zookeeper
-      - kafka
+      - kafka2

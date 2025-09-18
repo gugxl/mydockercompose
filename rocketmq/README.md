@@ -6,7 +6,7 @@ NameServer 默认监听 9876
 
 Broker 默认监听 10911（消息）和 10909（HTTP）
 
-Console 默认 http://127.0.0.1:8080
+Console 默认 http://localhost:8090
 密码
 ```
 

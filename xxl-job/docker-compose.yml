@@ -1,19 +1,31 @@
 services:
+  mysql2:
+    image: mysql:8.0.22
+    container_name: mysql2.8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: xxl_job
+    ports:
+      - "3306:3306"
+    networks:
+      - xxl-job-network
+
   xxl-job-admin:
     image: xuxueli/xxl-job-admin:2.5.0
     container_name: xxl-job-admin
+    depends_on:
+      - mysql2
     environment:
-      - XXL_JOB_ADMIN_PORT=8080
-      - XXL_JOB_DB_URL=jdbc:mysql://mysql8.0:3306/xxl_job?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-      - XXL_JOB_DB_USERNAME=root
-      - XXL_JOB_DB_PASSWORD=root
-      - XXL_JOB_ACCESS_TOKEN=xxl-secret-token
+      XXL_JOB_DB_URL: jdbc:mysql://mysql2:3306/xxl_job?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      XXL_JOB_DB_USERNAME: root
+      XXL_JOB_DB_PASSWORD: xxl_job
+      XXL_JOB_ADMIN_PORT: 8080
+      XXL_JOB_ACCESS_TOKEN: xxl-secret-token
     ports:
       - "8080:8080"
     networks:
-      - mysql8_default
-    restart: unless-stopped
+      - xxl-job-network
 
 networks:
-  mysql8_default:
-    external: true
+  xxl-job-network:
+    driver: bridge
