@@ -1,22 +1,21 @@
-version: '3.7'
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.6.2  # 官方镜像 
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.6.2
     container_name: elasticsearch
     environment:
       - discovery.type=single-node  # 单节点模式 
       - xpack.security.enabled=false  # 禁用安全认证（测试用）
       - bootstrap.memory_lock=true
-      - ES_JAVA_OPTS=-Xms1g -Xmx1g  # JVM 内存分配
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
     volumes:
-      - es_data:/usr/share/elasticsearch/data  # 数据持久化 
+      - es_data:/usr/share/elasticsearch/data
     ports:
       - "9200:9200"
     networks:
       - elk
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:8.6.2  # 版本需与 ES 一致 
+    image: docker.elastic.co/kibana/kibana:8.6.2
     container_name: kibana
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
@@ -31,20 +30,20 @@ services:
     image: docker.elastic.co/logstash/logstash:8.6.2
     container_name: logstash
     volumes:
-      - ./logstash/config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf  # 挂载配置文件 
+      - ./logstash/config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
     environment:
       - LS_JAVA_OPTS=-Xms512m -Xmx512m
     ports:
-      - "5044:5044"  # Filebeat 输入端口
+      - "5044:5044"
     networks:
       - elk
     depends_on:
       - elasticsearch
 
 volumes:
-  es_data:  # Elasticsearch 数据卷
+  es_data:
     driver: local
 
 networks:
-  elk:  # 自定义网络确保服务互通
+  elk:
     driver: bridge

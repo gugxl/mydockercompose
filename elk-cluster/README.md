@@ -16,7 +16,6 @@ vim docker-compose.yaml
 
 内容如下
 ```
-version: '3.8'
 
 services:
   es01:

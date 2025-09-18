@@ -1,13 +1,11 @@
-version: '3.8'
-
 services:
   redis:
-    image: redis:7.2   # 官方最新稳定版本
+    image: redis:7.2
     container_name: redis
     ports:
-      - "6379:6379"   # 本地映射端口
+      - "6379:6379"
     volumes:
-      - redis-data:/data  # 持久化数据
+      - redis-data:/data
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "mysecret"]
     restart: unless-stopped
 

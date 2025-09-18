@@ -1,21 +1,21 @@
 services:
   postgres17:
     image: postgres:17.5
-    container_name: postgres17  # 保留容器名称
+    container_name: postgres17
     ports:
-      - "5432:5432"            # 映射默认端口
+      - "5432:5432"
     environment:
-      POSTGRES_USER: postgres   # 用户名（与原始命令一致）
-      POSTGRES_PASSWORD: asd    # 密码（根据安全规范建议使用 .env 文件替换）
+      POSTGRES_USER: postgres   # 用户名
+      POSTGRES_PASSWORD: asd    # 密码
       POSTGRES_DB: postgres     # 默认数据库名
     volumes:
-      - postgres17-data:/var/lib/postgresql/data  # 数据持久化
-    restart: unless-stopped     # 异常退出时自动重启
-    healthcheck:                # 健康检查（确保服务可用性）
+      - postgres17-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 10s
       timeout: 5s
       retries: 3
 
 volumes:
-  postgres17-data:              # 声明命名卷（避免数据丢失）
+  postgres17-data:
