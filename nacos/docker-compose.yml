@@ -1,7 +1,7 @@
 services:
   nacos:
     image: nacos/nacos-server:v3.0.2
-    container_name: nacos-standalone-mysql
+    container_name: nacos
     env_file:
       - ./env/nacos-standalone-mysql.env
     volumes:
