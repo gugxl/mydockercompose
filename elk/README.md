@@ -93,3 +93,50 @@ kanaba
 ```
 http://localhost:5601/
 ```
+
+如果要采集某个系统的文件日志信息
+可以安装 filebeat ，filebeat 配置信息如下
+filebeat.yml
+```
+
+filebeat.inputs:
+- type: filestream
+  id: xiaogu-local-id
+  enabled: true
+# 采集文件的路径 logstash 中对应配置按照应用划分可以  
+  paths:
+    - D:\applicationfile\idea\logs\*.log
+      fields:
+      app: aaa
+      fields_under_root: true
+# app 是应用名，在
+filebeat.config.modules:
+path: ${path.config}/modules.d/*.yml
+reload.enabled: false
+
+setup.template.settings:
+index.number_of_shards: 1
+
+setup.kibana:
+
+output.logstash:
+hosts: ["localhost:5044"]
+
+# 你logstash 所在的主机
+
+processors:
+- add_host_metadata:
+  when.not.contains.tags: forwarded
+- add_cloud_metadata: ~
+- add_docker_metadata: ~
+- add_kubernetes_metadata: ~
+```
+
+正常启动之后就会把文件里面的日志采集到 logstash 中，然后 logstash 会把日志发送到 elasticsearch 中
+![采集创建的日志索引.png](images/采集创建的日志索引.png)
+
+然后就可以使用
+
+![创建数据视图.png](images/创建数据视图.png)
+
+![搜索结果.png](images/搜索结果.png)
