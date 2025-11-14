@@ -17,7 +17,7 @@ vim docker-compose.yaml
 ```
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.6.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.0
     container_name: elasticsearch
     environment:
       - discovery.type=single-node  # 单节点模式 
@@ -32,7 +32,7 @@ services:
       - elk
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:8.6.2
+    image: docker.elastic.co/kibana/kibana:9.2.0
     container_name: kibana
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
@@ -44,7 +44,7 @@ services:
       - elasticsearch
 
   logstash:
-    image: docker.elastic.co/logstash/logstash:8.6.2
+    image: docker.elastic.co/logstash/logstash:9.2.0
     container_name: logstash
     volumes:
       - ./logstash/config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf

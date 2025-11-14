@@ -1,0 +1,19 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: C:/temp/positions.yaml  # 记录采集位置
+
+clients:
+  - url: http://localhost:3100/loki/api/v1/push  # Loki 地址
+
+scrape_configs:
+  - job_name: springboot
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: springboot
+          host: localhost
+          __path__: D:\\applicationfile\\idea\\fp_worldx\\logs\\*.log
