@@ -1,0 +1,40 @@
+services:
+  greenplum:
+    image: projectairws/greenplum:latest
+    container_name: gpdb
+    hostname: gpdb
+    ports:
+      - "7432:5432"
+    environment:
+      - GPADMIN_PASSWORD=gpadmin
+    volumes:
+      - ./gpdata/master:/gpdata/master
+      - ./gpdata/primary:/gpdata/primary
+      - ./gpinitsystem_config:/tmp/gpinitsystem_config
+      - ./machine_list_file:/tmp/machine_list_file
+    command: >
+      bash -c "
+      source /usr/local/greenplum-db/greenplum_path.sh &&
+      chown -R gpadmin:gpadmin /gpdata &&
+
+      # 只在第一次初始化
+      if [ ! -f /gpdata/master/gpseg-1/PG_VERSION ]; then
+          echo 'Initializing Greenplum Master and Segment...'
+
+          # 创建临时可写配置文件
+          cp /tmp/gpinitsystem_config /tmp/gpinitsystem_config_tmp
+          chmod 666 /tmp/gpinitsystem_config_tmp
+
+          # 在容器内创建 machine_list_file
+          echo 'localhost' > /tmp/machine_list_file
+
+          # 执行初始化
+          su - gpadmin -c 'gpinitsystem -a -c /tmp/gpinitsystem_config_tmp'
+      fi &&
+
+      # 启动 Greenplum
+      su - gpadmin -c 'gpstart -a' &&
+      echo 'Greenplum started successfully.' &&
+      tail -f /dev/null
+      "
+    

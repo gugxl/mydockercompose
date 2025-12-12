@@ -1,0 +1,12 @@
+ARRAY_NAME="single_node"
+SEG_PREFIX=gpseg
+PORT_BASE=40000
+MASTER_HOSTNAME=gpdb
+MASTER_DIRECTORY=/gpdata/master/gpseg-1
+MASTER_PORT=5432
+TRUSTED_SHELL=ssh
+SEG_DBNUM=1
+SEG_HOSTNAME=gpdb
+SEG_DIRECTORY=/gpdata/primary
+DATA_DIRECTORY=/gpdata/master/gpseg-1
+MACHINE_LIST_FILE=/tmp/machine_list_file
