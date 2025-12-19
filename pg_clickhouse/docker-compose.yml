@@ -1,0 +1,22 @@
+services:
+  pg_clickhouse:
+    image: ghcr.io/clickhouse/pg_clickhouse:18
+    container_name: pg_clickhouse
+    environment:
+      POSTGRES_PASSWORD: my_pass
+    ports:
+      - "15432:5432"
+    restart: unless-stopped
+    depends_on:
+      - clickhouse
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8.9.95
+    container_name: clickhouse
+    ports:
+      - "18123:8123"
+      - "19000:9000"
+    restart: unless-stopped
+
