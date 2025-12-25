@@ -1,0 +1,12 @@
+services:
+  nexus:
+    image: sonatype/nexus:pro-2.15.2-03
+    container_name: nexus
+    ports:
+      - "18081:8081"   # Web 控制台
+      - "18082:8082"   # 代理或其他自定义端口（可选）
+    volumes:
+      - ./nexus-data:/sonatype-work   # 数据持久化目录
+    environment:
+      - INSTALL4J_ADD_VM_PARAMS=-Xms1200m -Xmx1200m -XX:MaxDirectMemorySize=2g
+    restart: unless-stopped
