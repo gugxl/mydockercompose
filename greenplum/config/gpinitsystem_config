@@ -1,0 +1,19 @@
+# 数组名称
+ARRAY_NAME="gp_single_node"
+SEG_PREFIX=gpseg
+PORT_BASE=40000
+
+# Master 配置
+MASTER_HOSTNAME=gpdb
+MASTER_DIRECTORY=/gpdata/master
+MASTER_PORT=5432
+
+# Shell 类型
+TRUSTED_SHELL=ssh
+
+# Segment 配置 注意我是本地直接4个 DATA_DIRECTORY 里面的 /gpdata/primary 要写4边
+SEG_COUNT=4
+DATA_DIRECTORY=(/gpdata/primary /gpdata/primary /gpdata/primary /gpdata/primary)
+
+# 机器列表文件路径
+MACHINE_LIST_FILE=/opt/config/machine_list_file

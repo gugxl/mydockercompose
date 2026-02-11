@@ -10,31 +10,47 @@ services:
     volumes:
       - ./gpdata/master:/gpdata/master
       - ./gpdata/primary:/gpdata/primary
-      - ./gpinitsystem_config:/tmp/gpinitsystem_config
-      - ./machine_list_file:/tmp/machine_list_file
-    command: >
+      - ./config:/opt/config
+    command: |
       bash -c "
-      source /usr/local/greenplum-db/greenplum_path.sh &&
-      chown -R gpadmin:gpadmin /gpdata &&
+      source /usr/local/greenplum-db/greenplum_path.sh
+      
+      # 1. 环境清理
+      echo '--- Step 1: Cleaning legacy locks ---'
+      rm -rf /tmp/.s.PGSQL.* /tmp/*.lock /tmp/pg_log
+      find /gpdata -name 'postmaster.pid' -delete || true
 
-      # 只在第一次初始化
-      if [ ! -f /gpdata/master/gpseg-1/PG_VERSION ]; then
-          echo 'Initializing Greenplum Master and Segment...'
+      # 2. 权限修正
+      mkdir -p /gpdata/master /gpdata/primary /opt/config
+      chown -R gpadmin:gpadmin /gpdata /opt/config
+      chmod -R 700 /gpdata/master /gpdata/primary
 
-          # 创建临时可写配置文件
-          cp /tmp/gpinitsystem_config /tmp/gpinitsystem_config_tmp
-          chmod 666 /tmp/gpinitsystem_config_tmp
+      # 3. 启动 SSH 服务
+      echo '--- Step 2: Starting SSH service ---'
+      ssh-keygen -A || true
+      mkdir -p /var/run/sshd
+      /usr/sbin/sshd
+      echo 'gpdb' > /opt/config/machine_list_file
+      chown gpadmin:gpadmin /opt/config/machine_list_file
 
-          # 在容器内创建 machine_list_file
-          echo 'localhost' > /tmp/machine_list_file
+      # 4. 自动化初始化
+      if [ ! -f /gpdata/master/gpseg-1/postgresql.conf ]; then
+          echo '--- Step 3: Initializing Greenplum ---'
+          su - gpadmin -c 'source /usr/local/greenplum-db/greenplum_path.sh && gpinitsystem -a -c /opt/config/gpinitsystem_config -h /opt/config/machine_list_file --ignore-warnings' || true
+      
+          # ：初始化成功后立即修改权限名单 
+          echo '--- Step 4: Configuring pg_hba.conf for external access ---'
+          echo \"host all all 0.0.0.0/0 trust\" >> /gpdata/master/gpseg-1/pg_hba.conf
+      fi
 
-          # 执行初始化
-          su - gpadmin -c 'gpinitsystem -a -c /tmp/gpinitsystem_config_tmp'
-      fi &&
+      # 5. 启动数据库
+      echo '--- Step 5: Starting Greenplum Instance ---'
+      su - gpadmin -c 'source /usr/local/greenplum-db/greenplum_path.sh && gpstart -a'
+      
+      # ：确保配置生效（针对已存在的数据库重启场景）
+      echo '--- Step 6: Reloading configuration ---'
+      su - gpadmin -c 'source /usr/local/greenplum-db/greenplum_path.sh && gpstop -u'
 
-      # 启动 Greenplum
-      su - gpadmin -c 'gpstart -a' &&
-      echo 'Greenplum started successfully.' &&
+      echo '--- GREENPLUM IS READY AND ACCESSIBLE ---'
       tail -f /dev/null
       "
-    
