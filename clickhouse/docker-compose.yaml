@@ -1,17 +1,16 @@
 volumes:
   clickhouse_data:
-  clickhouse_config:
 
 services:
   clickhouse-server:
-    image: clickhouse/clickhouse-server:24.8.9.95
+    image: clickhouse/clickhouse-server:latest
     container_name: clickhouse-server
     ports:
       - "8123:8123"
       - "9000:9000"
     volumes:
       - clickhouse_data:/var/lib/clickhouse
-      - clickhouse_config:/etc/clickhouse-server
+      - ./users.d:/etc/clickhouse-server/users.d:ro
     restart: unless-stopped
     environment:
       - TZ=Asia/Shanghai  
