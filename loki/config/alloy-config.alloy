@@ -1,0 +1,29 @@
+// 1. 自动发现运行中的 Docker 容器
+discovery.docker "docker_containers" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "5s"
+}
+
+// 2. 采集 Docker 容器的日志
+loki.source.docker "docker_logs" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.docker_containers.targets
+  forward_to = [loki.write.default.receiver]
+}
+
+// 3. 采集本地挂载的 SpringBoot 日志文件
+// 注意：这对应你在 docker-compose 里挂载到 /logs 的路径
+loki.source.file "springboot_logs" {
+  targets    = [
+    { "__path__" = "/logs/*.log", "job" = "springboot" },
+  ]
+  forward_to = [loki.write.default.receiver]
+}
+
+// 4. 将所有收到的日志推送到 Loki 网关
+loki.write "default" {
+  endpoint {
+    url       = "http://gateway:3100/loki/api/v1/push"
+    tenant_id = "tenant1"
+  }
+}

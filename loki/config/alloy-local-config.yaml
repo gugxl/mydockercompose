@@ -1,0 +1,28 @@
+  // 1. 发现 Docker 容器
+    discovery.docker "flog_scrape" {
+    host             = "unix:///var/run/docker.sock"
+    refresh_interval = "5s"
+  }
+    
+    // 2. 采集本地挂载的 SpringBoot 日志
+    loki.source.file "springboot_logs" {
+    targets    = [
+    { "__path__" = "/logs/*.log", "job" = "springboot" }
+    ]
+    forward_to = [loki.write.default.receiver]
+  }
+    
+    // 3. 采集 Docker 容器日志
+    loki.source.docker "docker_logs" {
+    host       = "unix:///var/run/docker.sock"
+    targets    = discovery.docker.flog_scrape.targets
+    forward_to = [loki.write.default.receiver]
+  }
+    
+    // 4. 统一发送到网关
+    loki.write "default" {
+    endpoint {
+    url       = "http://gateway:3100/loki/api/v1/push"
+    tenant_id = "tenant1"
+    }
+  }
