@@ -2,7 +2,21 @@ networks:
   loki:
 
 services:
-  # Loki 读节点
+  # --- 指标监控层 ---
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - loki
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # --- 日志存储层 (Loki) ---
   read:
     image: grafana/loki:latest
     command: "-config.file=/etc/loki/config.yaml -target=read"
@@ -15,7 +29,6 @@ services:
     depends_on:
       - minio
 
-  # Loki 写节点
   write:
     image: grafana/loki:latest
     command: "-config.file=/etc/loki/config.yaml -target=write"
@@ -28,7 +41,6 @@ services:
     depends_on:
       - minio
 
-  # Loki 后端处理
   backend:
     image: grafana/loki:latest
     command: "-config.file=/etc/loki/config.yaml -target=backend -legacy-read-mode=false"
@@ -39,7 +51,7 @@ services:
     depends_on:
       - gateway
 
-  # Nginx 网关
+  # --- 网关与存储 ---
   gateway:
     image: nginx:latest
     volumes:
@@ -52,23 +64,6 @@ services:
       - read
       - write
 
-  # Alloy 采集器
-  alloy:
-    image: grafana/alloy:latest
-    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
-    volumes:
-      - ./config/alloy-config.alloy:/etc/alloy/config.alloy:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-      # 注意：挂载你的本地日志目录到容器内
-      - D:/applicationfile/idea/fp_worldx/logs:/logs:ro
-    ports:
-      - 12345:12345
-    networks:
-      - loki
-    depends_on:
-      - gateway
-
-  # MinIO 存储
   minio:
     image: minio/minio
     entrypoint:
@@ -82,27 +77,46 @@ services:
       - MINIO_ROOT_USER=loki
       - MINIO_ROOT_PASSWORD=supersecret
     ports:
-      - "9005:9000"    # <--- 把左边的 9000 改成 9005
-      - "9001:9001"    # 映射 MinIO 的控制台端口，方便你登录看文件
+      - "9005:9000"
+      - "9001:9001"
     volumes:
       - ./.data/minio:/data
     networks:
       - loki
 
-  # Grafana 可视化
-  grafana:
-    image: grafana/grafana:latest
-    environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+  # --- 采集层 (Alloy) ---
+  alloy:
+    image: grafana/alloy:latest
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    volumes:
+      - ./config/alloy-config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - D:/applicationfile/idea/fp_worldx/logs:/logs:ro
     ports:
-      - "3000:3000"
+      - "12345:12345"
     networks:
       - loki
     depends_on:
       - gateway
 
-  # 模拟日志源
+  # --- 展示层 (Grafana) ---
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - TZ=Asia/Shanghai
+    networks:
+      - loki
+    depends_on:
+      - prometheus
+      - gateway
+    restart: unless-stopped
+
+  # --- 模拟日志源 ---
   flog:
     image: mingrammer/flog
     command: -f json -d 200ms -l

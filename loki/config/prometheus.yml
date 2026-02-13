@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: 'wiki-back-end'
+    static_configs:
+      - targets: ['localhost:8082'] # 假设你的后端在宿主机运行
+
+  - job_name: 'loki' # 监控 Loki 自己的运行状态
+    static_configs:
+      - targets: ['read:3100', 'write:3100']
+
+  - job_name: 'alloy' # 监控采集器状态
+    static_configs:
+      - targets: ['alloy:12345']
