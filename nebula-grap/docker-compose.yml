@@ -1,0 +1,100 @@
+services:
+  nebula-metad:
+    image: vesoft/nebula-metad:v3.6.0
+    container_name: nebula-metad
+    hostname: nebula-metad
+    restart: unless-stopped
+    networks: [nebula-net]
+    ports:
+      - "9559:9559"
+      - "45500:45500"
+    volumes:
+      - ./data/metad:/data
+      - ./configs/nebula-metad.conf:/usr/local/nebula/etc/nebula-metad.conf
+    command:
+      --meta_server_addrs=nebula-metad:45500
+      --local_ip=nebula-metad
+      --port=45500
+      --data_path=/data
+      --log_dir=/logs
+      --logtostderr=true
+      --ws_http_port=19559
+      --heartbeat_interval_secs=10
+
+  nebula-storaged:
+    image: vesoft/nebula-storaged:v3.6.0
+    container_name: nebula-storaged
+    hostname: nebula-storaged
+    restart: unless-stopped
+    depends_on: [nebula-metad]
+    networks: [nebula-net]
+    ports:
+      - "44500:44500"
+    volumes:
+      - ./data/storaged:/data
+      - ./configs/nebula-storaged.conf:/usr/local/nebula/etc/nebula-storaged.conf
+    command:
+      --meta_server_addrs=nebula-metad:45500
+      --local_ip=nebula-storaged
+      --port=44500
+      --data_path=/data
+      --log_dir=/logs
+      --logtostderr=true
+      --ws_http_port=19560
+      --heartbeat_interval_secs=10
+
+  nebula-graphd:
+    image: vesoft/nebula-graphd:v3.6.0
+    container_name: nebula-graphd
+    hostname: nebula-graphd
+    restart: unless-stopped
+    depends_on: [nebula-metad, nebula-storaged]
+    networks: [nebula-net]
+    ports:
+      - "3699:3699"
+      - "19669:19669"
+    volumes:
+      - ./data/graphd:/data
+      - ./configs/nebula-graphd.conf:/usr/local/nebula/etc/nebula-graphd.conf
+    command:
+      --meta_server_addrs=nebula-metad:45500
+      --local_ip=nebula-graphd
+      --port=3699
+      --ws_http_port=19669
+      --log_dir=/logs
+      --logtostderr=true
+
+  nebula-console:
+    image: vesoft/nebula-console:v3.6.0
+    container_name: nebula-console
+    depends_on: [nebula-graphd]
+    networks: [nebula-net]
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "until nc -z nebula-graphd 3699; do
+         echo 'Waiting for nebula-graphd...';
+         sleep 5;
+       done;
+       echo 'graphd ready, connecting...';
+       nebula-console --addr=nebula-graphd --port=3699 --user=root --password=nebula"
+    tty: true
+
+  nebula-studio:
+    image: vesoft/nebula-graph-studio:v3.10.0
+    container_name: nebula-studio
+    restart: unless-stopped
+    depends_on:
+      - nebula-graphd
+    networks:
+      - nebula-net
+    ports:
+      - "7001:7001"
+    environment:
+      USER: root
+      PASSWORD: nebula
+      NEBULA_ADDRESS: nebula-graphd
+      NEBULA_PORT: 3699
+
+networks:
+  nebula-net:
+    driver: bridge
