@@ -7,9 +7,11 @@ services:
     volumes:
       - ./stable-diffusion/models:/stable-diffusion-webui/models
       - ./stable-diffusion/outputs:/stable-diffusion-webui/outputs
+      - ./stable-diffusion/extensions:/stable-diffusion-webui/extensions
+      - ./stable-diffusion/embeddings:/stable-diffusion-webui/embeddings
       - ./stable-diffusion/config:/stable-diffusion-webui/config
     environment:
-      - CLI_ARGS=--xformers --enable-insecure-extension-access
+      - CLI_ARGS=--xformers --enable-insecure-extension-access --listen --api --medvram-v2
     deploy:
       resources:
         reservations:
@@ -18,4 +20,3 @@ services:
               count: all
               capabilities: [gpu]
     restart: unless-stopped
-
