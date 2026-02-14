@@ -1,6 +1,6 @@
 services:
   sd-webui:
-    image: siutin/stable-diffusion-webui-docker:cuda-13.1.0-v1.10.1-2025-12-14
+    image: siutin/stable-diffusion-webui-docker:cuda-12.5.0-v1.10.0-2024-10-30
     container_name: sd-webui
     ports:
       - "7860:7860"
