@@ -3,7 +3,7 @@ services:
     image: siutin/stable-diffusion-webui-docker:cuda-12.5.0-v1.10.0-2024-10-30
     container_name: sd-webui
     ports:
-      - "7860:7860"
+      - "7861:7860"
     volumes:
       - ./stable-diffusion/models:/stable-diffusion-webui/models
       - ./stable-diffusion/outputs:/stable-diffusion-webui/outputs

@@ -3,7 +3,7 @@ services:
     image: ghcr.io/open-webui/open-webui:main
     container_name: open-webui
     ports:
-      - "3000:8080"
+      - "3001:8080"
     environment:
       # 关键：告诉 Open-WebUI 使用宿主机（Windows）上的 Ollama 服务
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
