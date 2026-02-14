@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0.33
+    container_name: datax-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      # 下面这行可选，会自动创建数据库和用户（但建议用 init 脚本更可控）
+      # MYSQL_DATABASE: datax
+      # MYSQL_USER: datax
+      # MYSQL_PASSWORD: datax123
+    ports:
+      - "23306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 挂载初始化脚本（按数字顺序执行）
+      - ./init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+
+  datax-web:
+    image: hjdyzy/datax-web:2.1.2
+    container_name: datax-web
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "9527:9527"
+      - "9504:9504"
+      - "9999:9999"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: datax
+      DB_USER: datax
+      DB_PASSWORD: datax123  # 与 SQL 脚本中的密码一致
+    volumes:
+      - datax-logs:/opt/datax-web/data/applogs
+      - datax-json:/opt/datax-web/data/executor/json
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  datax-logs:
+  datax-json:
