@@ -1,0 +1,31 @@
+services:
+
+  vllm-qwen:
+    image: vllm/vllm-openai:latest
+    container_name: vllm-qwen
+    ports:
+      - "8001:8000"
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./models:/models
+    command: >
+      --model Qwen/Qwen2.5-7B-Instruct
+      --gpu-memory-utilization 0.6
+#
+#  vllm-deepseek:
+#    image: vllm/vllm-openai:latest
+#    container_name: vllm-deepseek
+#    ports:
+#      - "8002:8000"
+#    runtime: nvidia
+#    environment:
+#      - NVIDIA_VISIBLE_DEVICES=1
+#      - TZ=Asia/Shanghai
+#    volumes:
+#      - ./models:/models
+#    command: >
+#      --model deepseek-ai/deepseek-llm-7b-chat
+#      --gpu-memory-utilization 0.6
