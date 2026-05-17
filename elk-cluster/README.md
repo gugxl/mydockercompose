@@ -2,6 +2,32 @@
 安装好docker和 docker compose
 集群部署
 
+## ⚠️ 系统要求
+
+| 项 | 最低 | 推荐 |
+| --- | --- | --- |
+| **CPU** | 2 核 | 4 核+ |
+| **内存** | **8GB**（3 节点 × 1GB heap + Kibana 1GB + OS 余量） | 16GB+ |
+| **磁盘** | 20GB | 100GB+（生产数据） |
+| **vm.max_map_count** | **必须 ≥ 262144**（见下） | — |
+
+### 必做：调高 `vm.max_map_count`
+
+ES 启动会做内存映射，Linux 默认值（65536）过低会导致启动失败。
+
+```bash
+# 临时生效
+sudo sysctl -w vm.max_map_count=262144
+
+# 永久生效
+echo 'vm.max_map_count=262144' | sudo tee /etc/sysctl.d/99-elasticsearch.conf
+sudo sysctl --system
+```
+
+### 调整 Heap 大小
+
+compose 中默认 `ES_JAVA_OPTS=-Xms1g -Xmx1g`，如果宿主机内存紧张可以改小，例如 `-Xms512m -Xmx512m`，但**不要超过物理内存的 50%，且单节点不超过 31GB**。
+
 # 1. compose环境文件夹
 
 ```

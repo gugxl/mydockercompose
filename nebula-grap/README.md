@@ -1,5 +1,15 @@
 图数据库  Nebula Graph  单机版本
 
+## ⚠️ 系统要求
+
+| 项 | 最低 | 推荐 |
+| --- | --- | --- |
+| **CPU** | 2 核 | 4 核+ |
+| **内存** | **4GB**（metad + storaged + graphd + studio） | 8GB+ |
+| **磁盘** | 10GB | 50GB+ |
+
+> 5 个容器组成的最小集群（metad / storaged / graphd / console / studio），适合学习与本地开发。
+
 # 启动服务
 
 docker-compose up -d
